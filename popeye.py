@@ -16,14 +16,14 @@ def detect(color):
         lower2 = np.array([160,100,100])
         upper2 = np.array([179,255,255])
     elif color == 'B':
-        upper = np.array([0])
-        lower = np.array([0])
+        upper = np.array([130,255,255])
+        lower = np.array([110,100,100])
     elif color == 'G':
-        upper = np.array([0])
-        lower = np.array([0])
+        upper = np.array([70,255,255])
+        lower = np.array([50,100,100])
     elif color == 'Y':
-        upper = np.array([0])
-        lower = np.array([0])
+        upper = np.array([40,255,255])
+        lower = np.array([20,100,100])
 
     #Loop through instructions
     while detected < 50:
@@ -39,21 +39,43 @@ def detect(color):
         else:
             mask = cv2.inRange(hsv, lower, upper)
         #Get the balloon using Hough transform
-        #Not working
-        blur = cv2.medianBlur(mask,5)
-        balloon = cv2.HoughCircles(blur,cv2.HOUGH_GRADIENT,1,20,
-                                    param1=50,param2=30,minRadius=0,maxRadius=400)
-        #Draw
-        try:
-            for i in balloon:
-                cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
-                cv2.circle(frame,(i[0],i[1]),1,(0,0,255),3)
-            print('Balloon Found')
-            detected += 1
-        except:
-            print('Not found')
+        mask = cv2.medianBlur(mask,3)
+        kernel = np.ones((5,5), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations = 2)
+        #Find the balloon
+        im,contours,heirarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,
+                                cv2.CHAIN_APPROX_SIMPLE)
+        max_area = 100
+        max_i = 0
+        for i in range(len(contours)):
+            cnt = contours[i]
+            area = cv2.contourArea(cnt)
+            if (area>max_area):
+                max_area = max_area
+                max_i = i
+        req_contour = contours[max_i]
+        new = frame.copy()
+        cv2.drawContours(new, contours, max_i, (0,255,255), 3)
+
+        #Centroid
+        moments = cv2.moments(req_contour)
+        cx = int(moments['m10']/moments['m00'])
+        cy = int(moments['m01']/moments['m00'])
+        cv2.circle(new,(cx,cy),100,(0,255,0),2)
+        #Draw the circle
+        #try:
+        #    for i in balloon:
+        #        cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
+        #        cv2.circle(frame,(i[0],i[1]),1,(0,0,255),3)
+        #    print('Balloon Found')
+        #        detected += 1
+        #except:
+        #    print('Not found')
+
         cv2.imshow('FRAME',frame)
+        cv2.imshow('NEW', new)
         cv2.imshow('MASK',mask)
+
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
@@ -125,14 +147,12 @@ def round3_p2():
     print('not done yet')
 
 #Round 4 - tie breaker - do Round 2 and 3 again
-
-
 ############################################################
 
 #Main function
 def main():
     print('Not completed yet')
-    #detect('R')
+    detect('R')
 
 
 #Run the program
