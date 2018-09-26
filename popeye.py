@@ -11,7 +11,9 @@ def detect():
 
 #Find distance between two points
 def dist(x1,y1,x2,y2):
-    print('not done yet')
+    distance = (x1-x2)(x1-x2)+(y1-y2)(y1-y2)
+    distance = nn.sqrt(distance)
+    return (distance)
 
 #Find angle between two points and origin
 def ang(o1,o2,x1,y1,x2,y2):
