@@ -1,13 +1,67 @@
 #Import required libraries
 import cv2
-import numpy as nn
+import numpy as np
+
+#Take input from camera
+cap = cv2.VideoCapture(0)
 ##############Functions for Control##################
 
 #Detect particular colored balloons
-def detect():
-    #argument - color
-    print('not done yet')
-    #returns coordinates [x,y]
+def detect(color):
+    detected = 0
+    #Select the treshold according to color
+    if color == 'R':
+        lower1 = np.array([0,100,100])
+        upper1 = np.array([10,255,255])
+        lower2 = np.array([160,100,100])
+        upper2 = np.array([179,255,255])
+    elif color == 'B':
+        upper = np.array([0])
+        lower = np.array([0])
+    elif color == 'G':
+        upper = np.array([0])
+        lower = np.array([0])
+    elif color == 'Y':
+        upper = np.array([0])
+        lower = np.array([0])
+
+    #Loop through instructions
+    while detected < 50:
+        ret,frame = cap.read()
+        #Convert to HSV format
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        #Filter out the colors out of range
+        #Extra case for R --> two masks
+        if color == 'R':
+            mask1 = cv2.inRange(hsv, lower1, upper1)
+            mask2 = cv2.inRange(hsv, lower2, upper2)
+            mask = cv2.addWeighted(mask1, 1.0, mask2, 1.0, 0.0)
+        else:
+            mask = cv2.inRange(hsv, lower, upper)
+        #Get the balloon using Hough transform
+        #Not working
+        blur = cv2.medianBlur(mask,5)
+        balloon = cv2.HoughCircles(blur,cv2.HOUGH_GRADIENT,1,20,
+                                    param1=50,param2=30,minRadius=0,maxRadius=400)
+        #Draw
+        try:
+            for i in balloon:
+                cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
+                cv2.circle(frame,(i[0],i[1]),1,(0,0,255),3)
+            print('Balloon Found')
+            detected += 1
+        except:
+            print('Not found')
+        cv2.imshow('FRAME',frame)
+        cv2.imshow('MASK',mask)
+        k = cv2.waitKey(5) & 0xFF
+        if k == 27:
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+    out = [int(i) for i in balloon]
+    #out = [x,y,r]
+    return (out)
 
 #Find distance between two points
 def dist(x1,y1,x2,y2):
@@ -18,6 +72,7 @@ def dist(x1,y1,x2,y2):
 #Find angle between two points and origin
 def ang(o1,o2,x1,y1,x2,y2):
     #argunments - origin, C1, C2
+
     print('not done yet')
 
 #Go through balloons in sequence
@@ -74,6 +129,7 @@ def round3_p2():
 #Main function
 def main():
     print('Not completed yet')
+    detect('R')
     #For manual entry of coordinates for debugging
     #print('Enter the coordinates as x1 y1 x2 y2')
     #C = [int(x) for x in input().split()]
