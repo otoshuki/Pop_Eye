@@ -69,11 +69,14 @@ def dist(x1,y1,x2,y2):
     distance = nn.sqrt(distance)
     return (distance)
 
-#Find angle between two points and origin
-def ang(o1,o2,x1,y1,x2,y2):
-    #argunments - origin, C1, C2
-
-    print('not done yet')
+#Find angle between two points and origin using dot product
+def ang(ox,oy,x1,y1,x2,y2):
+    C1 = np.array([x1-ox,y1-oy])
+    C2 = np.array([x2-ox,y2-oy])
+    dot = C1.dot(C2)
+    mag = np.sqrt(C1.dot(C1)*C2.dot(C2))
+    angle = np.arccos(dot/mag)*180/np.pi
+    return int(angle)
 
 #Go through balloons in sequence
 def seq():
@@ -129,11 +132,7 @@ def round3_p2():
 #Main function
 def main():
     print('Not completed yet')
-    detect('R')
-    #For manual entry of coordinates for debugging
-    #print('Enter the coordinates as x1 y1 x2 y2')
-    #C = [int(x) for x in input().split()]
-
+    #detect('R')
 
 
 #Run the program
