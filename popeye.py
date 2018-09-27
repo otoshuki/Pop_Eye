@@ -47,41 +47,33 @@ def detect(color):
                                 cv2.CHAIN_APPROX_SIMPLE)
         max_area = 100
         max_i = 0
-        for i in range(len(contours)):
-            cnt = contours[i]
-            area = cv2.contourArea(cnt)
-            if (area>max_area):
-                max_area = max_area
-                max_i = i
-        req_contour = contours[max_i]
-        new = frame.copy()
-        cv2.drawContours(new, contours, max_i, (0,255,255), 3)
-
-        #Centroid
-        moments = cv2.moments(req_contour)
-        cx = int(moments['m10']/moments['m00'])
-        cy = int(moments['m01']/moments['m00'])
-        cv2.circle(new,(cx,cy),100,(0,255,0),2)
-        #Draw the circle
-        #try:
-        #    for i in balloon:
-        #        cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
-        #        cv2.circle(frame,(i[0],i[1]),1,(0,0,255),3)
-        #    print('Balloon Found')
-        #        detected += 1
-        #except:
-        #    print('Not found')
-
-        cv2.imshow('FRAME',frame)
-        cv2.imshow('NEW', new)
-        cv2.imshow('MASK',mask)
+        try:
+            for i in range(len(contours)):
+                cnt = contours[i]
+                area = cv2.contourArea(cnt)
+                if (area>max_area):
+                    max_area = max_area
+                    max_i = i
+            req_contour = contours[max_i]
+            new = frame.copy()
+            #Get the minimum enclosing circle
+            print('Contour found')
+            (cx,cy), rad = cv2.minEnclosingCircle(req_contour)
+            print('Circle Created')
+            center = (int(x),int(y))
+            cv2.circle(new,center,int(rad),(0,255,0),2)
+            cv2.imshow('FRAME',frame)
+            cv2.imshow('NEW', new)
+            cv2.imshow('MASK',mask)
+        except:
+            print('Contour not found')
 
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
     cap.release()
     cv2.destroyAllWindows()
-    out = [int(i) for i in balloon]
+    out = [0,0]
     #out = [x,y,r]
     return (out)
 
@@ -116,6 +108,9 @@ def move():
 #Initial position
 #Starts at a 9x9 black marker
 def start():
+    #detect black marker
+    #find the rad and angle
+    #move arm
     print('not done yet')
 
 #Round 1
@@ -123,6 +118,8 @@ def start():
 #Reach diametrically opposite point and stay for 't' seconds
 #'t' to be specified before round
 def round1():
+    #take the square/find the square
+    #
     print('not done yet')
 
 #Round 2
