@@ -4,6 +4,7 @@ import numpy as np
 
 #Take input from camera
 cap = cv2.VideoCapture(0)
+font = cv2.FONT_HERSHEY_SIMPLEX
 ##############Functions for Control##################
 
 #Detect particular colored balloons
@@ -49,38 +50,42 @@ def detect(color):
         max_i = 0
         try:
             for i in range(len(contours)):
-                cnt = contours[i]
-                area = cv2.contourArea(cnt)
+                area = cv2.contourArea(contours[i])
                 if (area>max_area):
                     max_area = max_area
                     max_i = i
             req_contour = contours[max_i]
             new = frame.copy()
             #Get the minimum enclosing circle
-            print('Contour found')
             (cx,cy), rad = cv2.minEnclosingCircle(req_contour)
-            print('Circle Created')
-            center = (int(x),int(y))
+            center = (int(cx),int(cy))
             cv2.circle(new,center,int(rad),(0,255,0),2)
-            cv2.imshow('FRAME',frame)
+            #cv2.imshow('FRAME',frame)
             cv2.imshow('NEW', new)
             cv2.imshow('MASK',mask)
+            if rad > 70 and rad < 80:
+                detected += 1
+
+                print('Balloon Detected ' + str(detected))
         except:
             print('Contour not found')
-
+        #cv2.putText(new,'HELLO',(100,100),font,50,(255,255,0),2,cv2.LINE_AA)
+        angle = ang(0,0,int(cx),int(cy),100,0)
+        distance = dist(int(cx),int(cy),0,0)
+        print('Angle: ' + str(angle) + '   Distance: ' + str(distance))
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
     cap.release()
     cv2.destroyAllWindows()
-    out = [0,0]
+    out = [int(cx),int(cy),int(rad)]
     #out = [x,y,r]
     return (out)
 
 #Find distance between two points
 def dist(x1,y1,x2,y2):
-    distance = (x1-x2)(x1-x2)+(y1-y2)(y1-y2)
-    distance = nn.sqrt(distance)
+    distance = (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)
+    distance = np.sqrt(distance)
     return (distance)
 
 #Find angle between two points and origin using dot product
@@ -149,8 +154,10 @@ def round3_p2():
 #Main function
 def main():
     print('Not completed yet')
-    detect('R')
-
+    position = detect('R')
+    angle = ang(0,0,position[0],position[1],100,0)
+    distance = dist(position[0],position[1],0,0)
+    print('Angle: ' + str(angle) + '   Distance: ' + str(distance))
 
 #Run the program
 if __name__ == '__main__':
