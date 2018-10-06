@@ -12,9 +12,6 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 #Detect particular colored balloons
 def detect(color):
     detected = 0
-    cx_avg = 0
-    cy_avg = 0
-    rad_avg = 0
     #Select the treshold according to color
     if color == 'R':
         lower1 = np.array([0,100,100])
@@ -35,6 +32,8 @@ def detect(color):
     while detected < 10:
         ret,frame = cap.read()
         #Convert to HSV format
+        frame = cv2.imread('Base.png')
+        new = frame.copy()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #Filter out the colors out of range
         #Extra case for R --> two masks
@@ -45,51 +44,25 @@ def detect(color):
         else:
             mask = cv2.inRange(hsv, lower, upper)
         #Apply morphological transformations for better accuracy
-        mask = cv2.medianBlur(mask,3)
-        kernel = np.ones((5,5), np.uint8)
-        mask = cv2.dilate(mask, kernel, iterations = 2)
-        #Find the balloon
-        im,contours,heirarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,
-                                cv2.CHAIN_APPROX_SIMPLE)
-        max_area = 100
-        max_i = 0
-        try:
-            for i in range(len(contours)):
-                area = cv2.contourArea(contours[i])
-                if (area>max_area):
-                    max_area = max_area
-                    max_i = i
-            req_contour = contours[max_i]
-            new = frame.copy()
-            #Get the minimum enclosing circle
-            (cx,cy), rad = cv2.minEnclosingCircle(req_contour)
-            center = (int(cx),int(cy))
-            cv2.circle(new,center,int(rad),(0,255,0),2)
-            #cv2.imshow('FRAME',frame)
-            cv2.imshow('NEW', new)
-            cv2.imshow('MASK',mask)
-            if rad > 70 and rad < 80:
-                detected += 1
-                cx_avg += cx
-                cy_avg += cy
-                rad_avg += rad
-                print('Balloon Detected ' + str(detected))
-        except:
-            print('Contour not found')
+        circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
+        param1 = 100,param2 = 10,minRadius = 0,maxRadius = 1000)
+        circles = np.uint16(np.around(circles))
+        print(circles)
+        for i in circles[0,:]:
+            cv2.circle(new,(i[0],i[1]),i[2],(255,255,255),2)
+            #cx.append(i[0])
+            #cy.append(i[1])
+            #r.append(i[2])
+            cv2.circle(new,(i[0],i[1]),2,(0,0,0),5)
+        cv2.imshow('NEW',new)
+        cv2.imshow('MASK',mask)
         #cv2.putText(new,'HELLO',(100,100),font,50,(255,255,0),2,cv2.LINE_AA)
-        angle = ang(0,0,int(cx),int(cy),100,0)
-        distance = dist(int(cx),int(cy),0,0)
-        print('Angle: ' + str(angle) + '   Distance: ' + str(distance))
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
     cap.release()
     cv2.destroyAllWindows()
     #Return the average values
-    cx_avg = cx_avg/10
-    cy_avg = cy_avg/10
-    rad_avg = rad_avg/10
-    out = [int(cx_avg),int(cy_avg),int(rad_avg)]
     return (out)
 
 #DONE
