@@ -24,7 +24,7 @@ def detect(color):
         lower = np.array([110,100,100])
     elif color == 'G':
         upper = np.array([70,255,255])
-        lower = np.array([50,100,100])
+        lower = np.array([50,150,100])
     elif color == 'Y':
         upper = np.array([40,255,255])
         lower = np.array([20,100,100])
@@ -48,7 +48,7 @@ def detect(color):
 
         #Apply Hough Circle Transform to get the circles
         circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
-        param1 = 100,param2 = 13,minRadius = 0,maxRadius = 1000)
+        param1 = 100,param2 = 12,minRadius = 20,maxRadius = 300)
         #Convert to numoy array
         circles = np.uint16(np.around(circles))
         #Get the circles and draw them
@@ -89,8 +89,18 @@ def ang(ox,oy,x1,y1,x2,y2):
     return int(angle)
 
 #Go through balloons in sequence
-def seq():
+def seq(color):
     #argument - colors available
+    pos = detect(color)
+    distance = []
+    centre_x = 800/2
+    centre_y = 450/2
+    arm_x = 250
+    arm_y = 250
+    for i in range(len(pos)):
+        distance.append(dist(pos[i][0],pos[i][1],centre_x,centre_y))
+    distance = np.transpose(distance)
+    print(distance)
     print('not done yet')
 
 #Algorithm to move arm to required coordinates
@@ -110,7 +120,7 @@ def start():
     print('not done yet')
 
 #Round 1
-#Reach a point
+#Reach a 5x5 red squre
 #Reach diametrically opposite point and stay for 't' seconds
 #'t' to be specified before round
 def round1():
@@ -145,16 +155,8 @@ def round3_p2():
 #Main function
 def main():
     print('Not completed yet')
-    pos = detect('G')
-    distance = []
-    centre_x = 800/2
-    centre_y = 450/2
-    arm_x = 250
-    arm_y = 250
-    for i in range(len(pos)):
-        distance.append(dist(pos[i][0],pos[i][1],centre_x,centre_y))
-    distance = np.transpose(distance)
-    print(distance)
+    for i in ['R','G','B','Y']:
+        seq(i)
 
 #Run the program
 if __name__ == '__main__':
