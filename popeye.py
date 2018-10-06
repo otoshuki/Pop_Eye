@@ -12,6 +12,7 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 #Detect particular colored balloons
 def detect(color):
     detected = 0
+    out = []
     #Select the treshold according to color
     if color == 'R':
         lower1 = np.array([0,100,100])
@@ -44,24 +45,29 @@ def detect(color):
         else:
             mask = cv2.inRange(hsv, lower, upper)
         #Apply morphological transformations for better accuracy
+
+        #Apply Hough Circle Transform to get the circles
         circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
-        param1 = 100,param2 = 10,minRadius = 0,maxRadius = 1000)
+        param1 = 100,param2 = 13,minRadius = 0,maxRadius = 1000)
+        #Convert to numoy array
         circles = np.uint16(np.around(circles))
-        print(circles)
+        #Get the circles and draw them
         for i in circles[0,:]:
             cv2.circle(new,(i[0],i[1]),i[2],(255,255,255),2)
-            #cx.append(i[0])
-            #cy.append(i[1])
-            #r.append(i[2])
+            #Append the circles to out
+            out.append([i[0],i[1],i[2]])
             cv2.circle(new,(i[0],i[1]),2,(0,0,0),5)
+        #Show windows
         cv2.imshow('NEW',new)
         cv2.imshow('MASK',mask)
-        #cv2.putText(new,'HELLO',(100,100),font,50,(255,255,0),2,cv2.LINE_AA)
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
     cap.release()
     cv2.destroyAllWindows()
+    #Set out
+    out = np.unique(np.uint16(out),axis=0)
+    print(out)
     #Return the average values
     return (out)
 
@@ -139,10 +145,16 @@ def round3_p2():
 #Main function
 def main():
     print('Not completed yet')
-    position = detect('R')
-    angle = ang(0,0,position[0],position[1],100,0)
-    distance = dist(position[0],position[1],0,0)
-    print('Angle: ' + str(angle) + '   Distance: ' + str(distance))
+    pos = detect('G')
+    distance = []
+    centre_x = 800/2
+    centre_y = 450/2
+    arm_x = 250
+    arm_y = 250
+    for i in range(len(pos)):
+        distance.append(dist(pos[i][0],pos[i][1],centre_x,centre_y))
+    distance = np.transpose(distance)
+    print(distance)
 
 #Run the program
 if __name__ == '__main__':
