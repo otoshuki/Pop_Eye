@@ -7,9 +7,14 @@ cap = cv2.VideoCapture(0)
 font = cv2.FONT_HERSHEY_SIMPLEX
 ##############Functions for Control##################
 
+#KINDA DONE
+#Detects only one though
 #Detect particular colored balloons
 def detect(color):
     detected = 0
+    cx_avg = 0
+    cy_avg = 0
+    rad_avg = 0
     #Select the treshold according to color
     if color == 'R':
         lower1 = np.array([0,100,100])
@@ -27,7 +32,7 @@ def detect(color):
         lower = np.array([20,100,100])
 
     #Loop through instructions
-    while detected < 50:
+    while detected < 10:
         ret,frame = cap.read()
         #Convert to HSV format
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -39,7 +44,7 @@ def detect(color):
             mask = cv2.addWeighted(mask1, 1.0, mask2, 1.0, 0.0)
         else:
             mask = cv2.inRange(hsv, lower, upper)
-        #Get the balloon using Hough transform
+        #Apply morphological transformations for better accuracy
         mask = cv2.medianBlur(mask,3)
         kernel = np.ones((5,5), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations = 2)
@@ -65,7 +70,9 @@ def detect(color):
             cv2.imshow('MASK',mask)
             if rad > 70 and rad < 80:
                 detected += 1
-
+                cx_avg += cx
+                cy_avg += cy
+                rad_avg += rad
                 print('Balloon Detected ' + str(detected))
         except:
             print('Contour not found')
@@ -78,16 +85,21 @@ def detect(color):
             break
     cap.release()
     cv2.destroyAllWindows()
-    out = [int(cx),int(cy),int(rad)]
-    #out = [x,y,r]
+    #Return the average values
+    cx_avg = cx_avg/10
+    cy_avg = cy_avg/10
+    rad_avg = rad_avg/10
+    out = [int(cx_avg),int(cy_avg),int(rad_avg)]
     return (out)
 
+#DONE
 #Find distance between two points
 def dist(x1,y1,x2,y2):
     distance = (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)
     distance = np.sqrt(distance)
     return (distance)
 
+#DONE
 #Find angle between two points and origin using dot product
 def ang(ox,oy,x1,y1,x2,y2):
     C1 = np.array([x1-ox,y1-oy])
@@ -119,7 +131,7 @@ def start():
     print('not done yet')
 
 #Round 1
-#Stay in a 15x15 square for 't' seconds
+#Reach a point
 #Reach diametrically opposite point and stay for 't' seconds
 #'t' to be specified before round
 def round1():
