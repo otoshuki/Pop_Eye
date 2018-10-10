@@ -60,7 +60,7 @@ def detect(color):
         mask = cv2.GaussianBlur(mask,(5,5),1)
         #Apply Hough Circle Transform to get the circles
         circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
-        param1 = 100,param2 = 20,minRadius = 30,maxRadius = 300)
+        param1 = 100,param2 = 20,minRadius = 35,maxRadius = 60)
         #Convert to numoy array
         circles = np.uint16(np.around(circles))
         #Get the circles and draw them
@@ -69,7 +69,7 @@ def detect(color):
             #Append the circles to out
             out.append([i[0],i[1],i[2]])
             cv2.circle(new,(i[0],i[1]),2,(0,0,0),5)
-        cv2.circle(new,(100,100),30,(255,255,255),2)
+        #cv2.circle(new,(100,100),35,(255,255,255),2)
         #Show windows
         cv2.imshow('NEW',new)
         cv2.imshow('MASK',mask)
@@ -85,45 +85,6 @@ def detect(color):
     #print(out)
     #Return the average values
     return (out)
-
-#Arm head detection
-def arm_detect():
-    detect = 0
-    #Take input from camera
-    #cap = cv2.VideoCapture(0)
-    #Ranges for head colors
-    lower = np.array([135,100,100])
-    upper = np.array([155,255,255])
-    while detect < 5:
-        #Get the camera input
-        #ret, frame = cap.read()
-        #frame = cv2.imread('Base.png')
-        #Convert to HSV color model
-        hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
-        #Create the mask
-        mask = cv2.inRange(hsv,lower,upper)
-        #Morphological transformation
-        #Find the circle for head
-        circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
-        param1 = 100,param2 = 10,minRadius = 20,maxRadius = 300)
-        #Convert to numoy array
-        new = frame.copy()
-        circles = np.uint16(np.around(circles))
-        #Get the circles and draw them
-        #for i in circles[0,:]:
-        #    cv2.circle(new,(i[0],i[1]),i[2],(255,255,255),2)
-        #    cv2.circle(new,(i[0],i[1]),2,(0,0,0),5)
-        #cv2.imshow('NEW',new)
-        #Find the x and y coordinates
-        detect += 1
-        k = cv2.waitKey(5) & 0xFF
-        if k == 27:
-            break
-    #cap.release()
-    cv2.destroyAllWindows()
-    x = circles[0][0][0]
-    y = circles[0][0][1]
-    return (x,y)
 
 #Find distance between two points
 def dist(x1,y1,x2,y2):
@@ -182,7 +143,7 @@ def move(r,theta,color,x,y):
         #Send the serial data as r,theta to arduino
         #Wait
         #Wait until the balloon is popped
-        cv2.circle(frame,(x,y),50,(0,0,0),-1)
+        cv2.circle(frame,(x,y),70,(0,0,0),-1)
         print('Balloon was popped')
         #Send the data for opposite balloon
         #Wait
@@ -199,8 +160,8 @@ def move(r,theta,color,x,y):
             y1 = y0 - (y-y0)
         else:
             y1 = y0 + (y0-y)
-        cv2.circle(frame,(int(x1),int(y1)),50,(0,0,0),-1)
-        print('Opposite Balloon was popped')
+        #cv2.circle(frame,(int(x1),int(y1)),50,(0,0,0),-1)
+        #print('Opposite Balloon was popped')
         popped += 1
         return 1
     else:
