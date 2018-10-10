@@ -8,23 +8,20 @@ import numpy as np
 frame = cv2.imread('Check1.jpg')
 
 #Function to detect black borders and crop image
-def border():
-    global frame
-    #take the square/find the square
-    #Take input from camera
-    #Treshold
+def border(frame):
+    det = 0
     #cap = cv2.VideoCapture(0)
+    #threshold
     lower1 = np.array([0,0,0])
     upper1 = np.array([180,255,70])
-    while True:
+    while det < 10:
         #ret,frame = cap.read()
         #Convert to HSV format
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #Create mask
         mask = cv2.inRange(hsv,lower1,upper1)
-        #mask2 = cv2.inRange(hsv,lower2,upper2)
-        #mask = cv2.addWeighted(mask1,1.0,mask2,1.0,0.0)
         #Apply morphological transformations
+
         #Find Contours
         img,contours,hierarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,
         cv2.CHAIN_APPROX_SIMPLE)
@@ -66,18 +63,9 @@ def border():
         #Crop
         crop = frame[min_y:max_y+h,min_x:max_x+w]
         #Show results
-        cv2.imshow('CROPPED',crop)
+        #cv2.imshow('CROPPED',crop)
         #cv2.imshow('NEW',new)
-        #Find (r,theta) for (cx,cy)
-        #r = dist(arm_x,arm_y,cx,cy)
-        #theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
-        #Move to (r,theta)
-        #Wait for t seconds
-        #Move to diametrically opposite point
-        #Wait for t seconds
-        #Come back to Intial Postion
-        #Wait
-        #Break
+        det += 1
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break

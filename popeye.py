@@ -6,8 +6,15 @@ import numpy as np
 import serial
 import time
 from calibrate import border
+from scipy.optimize import *
+import math
+import struct
+
+#Set up Serial Port
+arduino = serial.Serial('/dev/ttyACM0', 9600)
 
 frame = cv2.imread('Check1.jpg')
+#new = frame.copy()
 #Global var
 centre_x = 0
 centre_y = 0
@@ -21,11 +28,12 @@ popped = 0
 
 #Detects only one though
 #Detect particular colored balloons
-def detect(color):
+def detect(color,frame):
     detected = 0
+    flag = 0
     out = []
     #Take input from camera
-    #cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)
     #Select the treshold according to color
     if color == 'R':
         lower1 = np.array([0,100,100])
@@ -42,8 +50,7 @@ def detect(color):
         upper = np.array([40,255,255])
         lower = np.array([20,100,100])
     #Loop through instructions
-    while detected < 10:
-        #ret,frame = cap.read()
+    while detected < 50:
         #Convert to HSV format
         new = frame.copy()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -69,6 +76,7 @@ def detect(color):
             out.append([i[0],i[1],i[2]])
             cv2.circle(new,(i[0],i[1]),2,(0,0,0),5)
         #cv2.circle(new,(100,100),35,(255,255,255),2)
+        detected += 1
         #Show windows
         cv2.imshow('NEW',new)
         cv2.imshow('MASK',mask)
@@ -98,6 +106,8 @@ def angle(ox,oy,x1,y1,x2,y2):
     dot = C1.dot(C2)
     mag = np.sqrt(C1.dot(C1)*C2.dot(C2))
     angle = np.arccos(dot/mag)*180/np.pi
+    if x1 > ox:
+        angle = -1*angle
     return int(angle)
 
 #Go detection seq
@@ -105,11 +115,16 @@ def seq(color):
     #Got though twice for check
     for iter in range(2):
         try:
-            #Detect the balloon positions
-            pos = detect(color)
+            cap = cv2.VideoCapture()
+            for i in range(50):
+                ret,frame = cap.read()
+            cap.release()
+            frame = cv2.imread('Check1.jpg')
+            frame = calib(frame,0)
+            pos = detect(color,frame)
             print('Number of ' + color + ' balloons : ' + str(len(pos)))
         except:
-            print('Popped')
+            print(color + 'Balloons Popped')
             break
         #Go through the seq for the number of balloons
         for i in range(len(pos)):
@@ -119,18 +134,18 @@ def seq(color):
             ang = int(angle(centre_x,centre_y,pos[i][0],pos[i][1],
             arm_x, arm_y))
             #Move the arm to the position
-            ret = move(distance,ang,color,pos[i][0],pos[i][1])
+            ret = move(frame,distance,ang,color,pos[i][0],pos[i][1])
             if ret == 0:
                 break
             #Wait
             #Go for the next balloon
 
-#Algorithm to move arm to required coordinates
-def move(r,theta,color,x,y):
+#Simulation Algorithm to move arm to required coordinates
+def move1(frame,r,theta,color,x,y):
     global popped
     #Detect if the balloons are actually present
     try:
-        pos = detect(color)
+        pos = detect(color,new)
         #balloons left
         left = len(pos)
     #If error returned, no balloons left
@@ -141,7 +156,7 @@ def move(r,theta,color,x,y):
         #Send the serial data as r,theta to arduino
         #Wait
         #Wait until the balloon is popped
-        cv2.circle(frame,(x,y),70,(0,0,0),-1)
+        cv2.circle(new,(x,y),70,(0,0,0),-1)
         print('Balloon was popped')
         #Send the data for opposite balloon
         #Wait
@@ -166,43 +181,97 @@ def move(r,theta,color,x,y):
         print('All the colors already popped')
         return 0
 
-#def detect_contour(color):
+#Algorithm to move arm to required coordinates
+def move(frame,r,theta,color,x,y):
+    global popped
+    h = 0
+    #Detect if the balloons are actually present
+    try:
+        pos = detect(color, frame)
+        #balloons left
+        left = len(pos)
+    #If error returned, no balloons left
+    except:
+        left = 0
+        print('Left = 0')
+        return 0
+    if left != 0:
+        def FUN(z):
+        	x=z[0]
+        	y=z[1]
+        	F = np.empty((2))
+        	F[0] = 25.3*math.cos(x)+25.5*math.cos(y)-r
+        	F[1] = 25.3*math.sin(x)+25.5*math.sin(y)-h
+        	return F
+        #Send the serial data as r,theta to arduino
+        ZG= np.array([0.1,0.1])
+        Z = fsolve(FUN,ZG)
+        Z = Z* 180 / math.pi
+        angle1 = (int(Z[0]))
+        angle2 = (int(180-(Z[0]-Z[1])))
+        direction = 0
+        if theta < 0:
+            direction = 1
+        #arduino.write(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
+        print(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
+        #Wait
+        time.sleep(1)
+        #Wait for confirmation
 
+        print('Balloon was popped')
+        #Move to (r,theta+180)
+        if theta < 0:
+            theta += 180
+        elif theta > 0:
+            theta -= 180
+        if theta < 0:
+            direction = 1
+        #arduino.write(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
+        print(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
 
-##############Functions for Specific Steps##################
-#1 target = 2 balloons(diametrically opposite)
-#Always start off from an initial 9x9 position
+        #Wait
+        time.sleep(1)
+        #Wait for confirmation
+
+        print('Opposite Balloon was popped')
+        popped += 1
+        return 1
+    else:
+        print('All the colors already popped')
+        return 0
 
 #Calibration
-def calib():
+def calib(img,flag):
     #calibration
-    global frame
     global centre_x
     global centre_y
     global arm_x
     global arm_y
-    print('Starting Calibration......')
-    crop = border()
-    frame = frame[crop[0]:crop[1],crop[2]:crop[3]]
+    print('Starting Calibration')
+    crop = border(img)
+    img = img[crop[0]:crop[1],crop[2]:crop[3]]
     #Set mapping variable
     global mapper
     mapper = 100/(crop[3]-crop[2])
     #Frame Centre
-    centre_y,centre_x,channels = frame.shape
-    centre_x /= 2
-    centre_y /= 2
+    centre_y,centre_x,channels = img.shape
+    centre_x = int(centre_x/2)
+    centre_y = int(centre_y/2)
     #Arm Head
     arm_x = centre_x
     arm_y = 0
-    print('......Calibrated')
-    print('Mapper = ' + str(mapper))
-    print('cx = ' + str(centre_x) + ' cy = ' + str(centre_y))
-    print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
+    print('Calibrated')
+    if flag == 1:
+        print('Mapper = ' + str(mapper))
+        print('cx = ' + str(centre_x) + ' cy = ' + str(centre_y))
+        print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
+    return img
 
 #Round 1
 #'t' to be specified before round
 def round1(t):
     #take the square/find the square
+    det = 0
     print('STARTING ROUND 1')
     #Take input from camera
     #Treshold
@@ -211,8 +280,9 @@ def round1(t):
     lower2 = np.array([160,100,100])
     upper1 = np.array([10,255,255])
     upper2 = np.array([179,255,255])
-    while True:
+    while det  < 10:
         ret,frame = cap.read()
+        #frame = calib(frame,1)
         #Convert to HSV format
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #Create mask
@@ -237,25 +307,41 @@ def round1(t):
         #print('Contour Found')
         (cx,cy),rad = cv2.minEnclosingCircle(req_contour)
         cv2.circle(new,(int(cx),int(cy)), int(rad),(255,255,255),2)
+        cv2.circle(new,(centre_x,centre_y), 10,(255,255,255),2)
+        cv2.circle(new,(arm_x,arm_y), 10,(255,255,255),2)
         #Show results
         cv2.imshow('MASK',mask)
         cv2.imshow('NEW',new)
-        #Find (r,theta) for (cx,cy)
-        r = dist(arm_x,arm_y,cx,cy)
+        r = dist(centre_x,centre_y,cx,cy)
         theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
         print('r : ' + str(r) + ' ; theta : ' + str(theta))
-        #Move to (r,theta)
-        #Wait for t seconds
-        #Move to diametrically opposite point
-        #Wait for t seconds
-        #Come back to Intial Postion
-        #Wait
-        #Break
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
-    #cap.release()
+    #Find (r,theta) for (cx,cy)
+    r = dist(centre_x,centre_y,cx,cy)
+    theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
+    cap.release()
     cv2.destroyAllWindows()
+    print('RED MARKER Detected')
+    print('r : ' + str(r) + ' ; theta : ' + str(theta))
+    #Move to (r,theta)
+    print('Moving to RED MARKER')
+    #Wait for confirmation
+    #Wait for t seconds
+    time.sleep(t)
+    #Move to (r,theta + 180)
+    print('Moving to opposite RED MARKER')
+    #Wait for confirmation
+    #Wait for t seconds
+    time.sleep(t)
+    #Come back to Intial Postion
+    print('Moving back to initial position')
+    #Wait for confirmation
+    #Wait
+    time.sleep(2)
+    #Break
+    print('Round over')
 
 #Round 2
 def round2():
@@ -296,7 +382,7 @@ def main():
     while True:
         round = input("Enter the round : ")
         if round == 'cal':
-            calib()
+            calib(frame,0)
         elif round == '0':
             print('Initializing')
             #Arm Initial Position
