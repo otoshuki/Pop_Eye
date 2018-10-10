@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import serial
 import time
+from calibrate import border
 
 #Arm Head
 arm_x = 400
@@ -12,8 +13,11 @@ arm_y = 100
 #Frame Centre
 centre_x = 800/2
 centre_y = 450/2
-frame = cv2.imread('Base.png')
-cv2.circle(frame,(400,225),2,(0,0,0),2)
+frame = cv2.imread('Check1.jpg')
+#Mapping global var
+mapper = 0
+popped = 0
+#cv2.circle(frame,(400,225),2,(0,0,0),2)
 ##############Functions for Control##################
 
 #Detects only one though
@@ -31,10 +35,10 @@ def detect(color):
         upper2 = np.array([179,255,255])
     elif color == 'B':
         upper = np.array([130,255,255])
-        lower = np.array([110,150,150])
+        lower = np.array([100,70,80])
     elif color == 'G':
-        upper = np.array([70,255,255])
-        lower = np.array([50,150,100])
+        upper = np.array([80,255,255])
+        lower = np.array([50,60,60])
     elif color == 'Y':
         upper = np.array([40,255,255])
         lower = np.array([20,100,100])
@@ -42,7 +46,6 @@ def detect(color):
     while detected < 10:
         #ret,frame = cap.read()
         #Convert to HSV format
-
         new = frame.copy()
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #Filter out the colors out of range
@@ -54,10 +57,10 @@ def detect(color):
         else:
             mask = cv2.inRange(hsv, lower, upper)
         #Apply morphological transformations for better accuracy
-
+        mask = cv2.GaussianBlur(mask,(5,5),1)
         #Apply Hough Circle Transform to get the circles
         circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
-        param1 = 100,param2 = 12,minRadius = 20,maxRadius = 300)
+        param1 = 100,param2 = 20,minRadius = 30,maxRadius = 300)
         #Convert to numoy array
         circles = np.uint16(np.around(circles))
         #Get the circles and draw them
@@ -66,6 +69,7 @@ def detect(color):
             #Append the circles to out
             out.append([i[0],i[1],i[2]])
             cv2.circle(new,(i[0],i[1]),2,(0,0,0),5)
+        cv2.circle(new,(100,100),30,(255,255,255),2)
         #Show windows
         cv2.imshow('NEW',new)
         cv2.imshow('MASK',mask)
@@ -125,7 +129,7 @@ def arm_detect():
 def dist(x1,y1,x2,y2):
     distance = (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2)
     distance = np.sqrt(distance)
-    return (distance)
+    return (distance*mapper)
 
 #Find angle between two points and origin using dot product
 def angle(ox,oy,x1,y1,x2,y2):
@@ -164,6 +168,7 @@ def seq(color):
 
 #Algorithm to move arm to required coordinates
 def move(r,theta,color,x,y):
+    global popped
     #Detect if the balloons are actually present
     try:
         pos = detect(color)
@@ -196,11 +201,11 @@ def move(r,theta,color,x,y):
             y1 = y0 + (y0-y)
         cv2.circle(frame,(int(x1),int(y1)),50,(0,0,0),-1)
         print('Opposite Balloon was popped')
+        popped += 1
         return 1
     else:
         print('All the colors already popped')
         return 0
-
 
 ##############Functions for Specific Steps##################
 #1 target = 2 balloons(diametrically opposite)
@@ -272,7 +277,6 @@ def round2():
     print('STARTING ROUND 2')
     for color in ['R','B','G','Y']:
         seq(color)
-    print('not done yet')
 
 #Round 3 - Part 1
 #Max 5 targets
@@ -303,6 +307,12 @@ def main():
     #ser = serial.Serial('/dev/ttyUSB0')
     #Check port used
     #print("Serial Used : " + ser.name)
+    #calibration
+    global frame
+    crop = border()
+    frame = frame[crop[0]:crop[1],crop[2]:crop[3]]
+    global mapper
+    mapper = 100/(crop[3]-crop[2])
     #Select round
     while True:
         round = input("Enter the round : ")
@@ -323,6 +333,7 @@ def main():
         elif round == '4':
             round3_p2()
         else:
+            print(popped)
             print('CLOSING')
             break
 
