@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 #cap = cv2.VideoCapture(0)
-frame = cv2.imread('Check1.jpg')
+#frame = cv2.imread('Check1.jpg')
 
 #Function to detect black borders and crop image
 def border(frame):
@@ -14,13 +14,15 @@ def border(frame):
     #threshold
     lower1 = np.array([0,0,0])
     upper1 = np.array([180,255,70])
-    while det < 10:
+    #upper1 = np.array([40,255,255])
+    #lower1 = np.array([20,100,100])
+    while det < 1:
         #ret,frame = cap.read()
         #Convert to HSV format
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #Create mask
         mask = cv2.inRange(hsv,lower1,upper1)
-        #Apply morphological transformations
+        #1Apply morphological transformations
 
         #Find Contours
         img,contours,hierarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,
@@ -52,12 +54,12 @@ def border(frame):
                 max_xy = i
         #Draw Min
         x,y,w,h = cv2.boundingRect(contours[borders[min_coor]])
-        cv2.rectangle(new,(x,y),(x+w,y+h),(255,255,255),3)
+        #cv2.rectangle(new,(x,y),(x+w,y+h),(255,255,255),3)
         min_x = x
         min_y = y
         #Draw Max
         x,y,w,h = cv2.boundingRect(contours[borders[max_coor]])
-        cv2.rectangle(new,(x,y),(x+w,y+h),(255,255,255),3)
+        #cv2.rectangle(new,(x,y),(x+w,y+h),(255,255,255),3)
         max_x = x
         max_y = y
         #Crop
@@ -126,7 +128,7 @@ def color_d(color):
 
 def main():
     print('Finding Borders')
-    border()
+    border(frame)
     print('Color Calibration')
     color_d('R')
     color_d('B')

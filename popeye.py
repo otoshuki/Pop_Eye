@@ -11,9 +11,9 @@ import math
 import struct
 
 #Set up Serial Port
-arduino = serial.Serial('/dev/ttyACM0', 9600)
+#arduino = serial.Serial('/dev/ttyACM0', 9600)
 
-frame = cv2.imread('Check1.jpg')
+#frame = cv2.imread('Check1.jpg')
 #new = frame.copy()
 #Global var
 centre_x = 0
@@ -33,7 +33,7 @@ def detect(color,frame):
     flag = 0
     out = []
     #Take input from camera
-    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture(0)
     #Select the treshold according to color
     if color == 'R':
         lower1 = np.array([0,100,100])
@@ -63,7 +63,7 @@ def detect(color,frame):
         else:
             mask = cv2.inRange(hsv, lower, upper)
         #Apply morphological transformations for better accuracy
-        mask = cv2.GaussianBlur(mask,(5,5),1)
+        mask = cv2.GaussianBlur(mask,(5,5),2)
         #Apply Hough Circle Transform to get the circles
         circles = cv2.HoughCircles(mask,cv2.HOUGH_GRADIENT,1,20,
         param1 = 100,param2 = 20,minRadius = 35,maxRadius = 60)
@@ -105,26 +105,26 @@ def angle(ox,oy,x1,y1,x2,y2):
     C2 = np.array([x2-ox,y2-oy])
     dot = C1.dot(C2)
     mag = np.sqrt(C1.dot(C1)*C2.dot(C2))
-    angle = np.arccos(dot/mag)*180/np.pi
+    ang = np.arccos(dot/mag)*180/np.pi
     if x1 > ox:
-        angle = -1*angle
-    return int(angle)
+        ang = -1*ang
+    return ang
 
 #Go detection seq
 def seq(color):
     #Got though twice for check
     for iter in range(2):
         try:
-            cap = cv2.VideoCapture()
+            cap = cv2.VideoCapture(1)
             for i in range(50):
                 ret,frame = cap.read()
             cap.release()
-            frame = cv2.imread('Check1.jpg')
+            #frame = cv2.imread('Check1.jpg')
             frame = calib(frame,0)
             pos = detect(color,frame)
             print('Number of ' + color + ' balloons : ' + str(len(pos)))
         except:
-            print(color + '  Balloons Popped')
+            print(color + ' Balloons Popped')
             break
         #Go through the seq for the number of balloons
         for i in range(len(pos)):
@@ -134,7 +134,7 @@ def seq(color):
             ang = int(angle(centre_x,centre_y,pos[i][0],pos[i][1],
             arm_x, arm_y))
             #Move the arm to the position
-            ret = move(frame,distance,ang,color,pos[i][0],pos[i][1])
+            ret = move(frame,distance,ang,color)
             if ret == 0:
                 break
             #Wait
@@ -182,9 +182,9 @@ def move1(frame,r,theta,color,x,y):
         return 0
 
 #Algorithm to move arm to required coordinates
-def move(frame,r,theta,color,x,y):
+def move(frame,r,theta,color):
     global popped
-    h = 0
+    h = -10
     #Detect if the balloons are actually present
     try:
         pos = detect(color, frame)
@@ -212,12 +212,12 @@ def move(frame,r,theta,color,x,y):
         direction = 0
         if theta < 0:
             direction = 1
-        #arduino.write(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
+        arduino.write(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
         print(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
         #Wait
-        time.sleep(1)
         #Wait for confirmation
-
+        #while arduino.readline() != 1:
+        time.sleep(7)
         print('Balloon was popped')
         #Move to (r,theta+180)
         if theta < 0:
@@ -226,13 +226,13 @@ def move(frame,r,theta,color,x,y):
             theta -= 180
         if theta < 0:
             direction = 1
-        #arduino.write(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
+        arduino.write(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
         print(struct.pack('>BBBB', angle1,angle2,abs(theta),direction))
 
         #Wait
-        time.sleep(1)
         #Wait for confirmation
-
+        #while arduino.readline() != 2:
+        time.sleep(7)
         print('Opposite Balloon was popped')
         popped += 1
         return 1
@@ -267,6 +267,40 @@ def calib(img,flag):
         print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
     return img
 
+def calib1(flag):
+    #calibration
+    global centre_x
+    global centre_y
+    global arm_x
+    global arm_y
+    print('Starting Calibration')
+    cap = cv2.VideoCapture(1)
+    while True:
+        ret,img = cap.read()
+        #crop = border(img)
+        #img = frame[crop[0]:crop[1],crop[2]:crop[3]]
+        #Set mapping variable
+        #global mapper
+        #mapper = 100/(crop[3]-crop[2])
+        #Frame Centre
+        centre_y,centre_x,channels = img.shape
+        centre_x = int(centre_x/2)
+        centre_y = int(centre_y/2)
+        #Arm Head
+        arm_x = centre_x
+        arm_y = 0
+        print('Calibrated')
+        cv2.imshow('NEW', img)
+        k = cv2.waitKey(5) & 0xFF
+        if k == 27:
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+    if flag == 1:
+        print('Mapper = ' + str(mapper))
+        print('cx = ' + str(centre_x) + ' cy = ' + str(centre_y))
+        print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
+    return img
 #Round 1
 #'t' to be specified before round
 def round1(t):
@@ -281,10 +315,12 @@ def round1(t):
     upper1 = np.array([10,255,255])
     upper2 = np.array([179,255,255])
     while det  < 10:
-        ret,frame = cap.read()
-        #frame = calib(frame,1)
+        if det == 0:
+            for tf in range(10):
+                ret,frame = cap.read()
+            new = calib(frame,1)
         #Convert to HSV format
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(new, cv2.COLOR_BGR2HSV)
         #Create mask
         mask1 = cv2.inRange(hsv,lower1,upper1)
         mask2 = cv2.inRange(hsv,lower2,upper2)
@@ -306,15 +342,17 @@ def round1(t):
         new = frame.copy()
         #print('Contour Found')
         (cx,cy),rad = cv2.minEnclosingCircle(req_contour)
+        print('aewad')
         cv2.circle(new,(int(cx),int(cy)), int(rad),(255,255,255),2)
         cv2.circle(new,(centre_x,centre_y), 10,(255,255,255),2)
         cv2.circle(new,(arm_x,arm_y), 10,(255,255,255),2)
         #Show results
         cv2.imshow('MASK',mask)
         cv2.imshow('NEW',new)
-        r = dist(centre_x,centre_y,cx,cy)
-        theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
-        print('r : ' + str(r) + ' ; theta : ' + str(theta))
+        #r = dist(centre_x,centre_y,cx,cy)
+        #theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
+        #print('r : ' + str(r) + ' ; theta : ' + str(theta))
+        det += 1
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
@@ -325,20 +363,7 @@ def round1(t):
     cv2.destroyAllWindows()
     print('RED MARKER Detected')
     print('r : ' + str(r) + ' ; theta : ' + str(theta))
-    #Move to (r,theta)
-    print('Moving to RED MARKER')
-    #Wait for confirmation
-    #Wait for t seconds
-    time.sleep(t)
-    #Move to (r,theta + 180)
-    print('Moving to opposite RED MARKER')
-    #Wait for confirmation
-    #Wait for t seconds
-    time.sleep(t)
-    #Come back to Intial Postion
-    print('Moving back to initial position')
-    #Wait for confirmation
-    #Wait
+    #move(frame,r,theta,color)
     time.sleep(2)
     #Break
     print('Round over')
@@ -382,7 +407,7 @@ def main():
     while True:
         round = input("Enter the round : ")
         if round == 'cal':
-            calib(frame,0)
+            calib1(1)
         elif round == '0':
             print('Initializing')
             #Arm Initial Position
