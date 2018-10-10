@@ -124,7 +124,7 @@ def seq(color):
             pos = detect(color,frame)
             print('Number of ' + color + ' balloons : ' + str(len(pos)))
         except:
-            print(color + 'Balloons Popped')
+            print(color + '  Balloons Popped')
             break
         #Go through the seq for the number of balloons
         for i in range(len(pos)):
