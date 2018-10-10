@@ -7,14 +7,13 @@ import serial
 import time
 from calibrate import border
 
-#Arm Head
-arm_x = 400
-arm_y = 100
-#Frame Centre
-centre_x = 800/2
-centre_y = 450/2
 frame = cv2.imread('Check1.jpg')
-#Mapping global var
+#Global var
+centre_x = 0
+centre_y = 0
+#Arm Head
+arm_x = 0
+arm_y = 0
 mapper = 0
 popped = 0
 #cv2.circle(frame,(400,225),2,(0,0,0),2)
@@ -125,7 +124,6 @@ def seq(color):
                 break
             #Wait
             #Go for the next balloon
-            print(i)
 
 #Algorithm to move arm to required coordinates
 def move(r,theta,color,x,y):
@@ -168,13 +166,40 @@ def move(r,theta,color,x,y):
         print('All the colors already popped')
         return 0
 
+#def detect_contour(color):
+
+
 ##############Functions for Specific Steps##################
 #1 target = 2 balloons(diametrically opposite)
 #Always start off from an initial 9x9 position
 
+#Calibration
+def calib():
+    #calibration
+    global frame
+    global centre_x
+    global centre_y
+    global arm_x
+    global arm_y
+    print('Starting Calibration......')
+    crop = border()
+    frame = frame[crop[0]:crop[1],crop[2]:crop[3]]
+    #Set mapping variable
+    global mapper
+    mapper = 100/(crop[3]-crop[2])
+    #Frame Centre
+    centre_y,centre_x,channels = frame.shape
+    centre_x /= 2
+    centre_y /= 2
+    #Arm Head
+    arm_x = centre_x
+    arm_y = 0
+    print('......Calibrated')
+    print('Mapper = ' + str(mapper))
+    print('cx = ' + str(centre_x) + ' cy = ' + str(centre_y))
+    print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
+
 #Round 1
-#Reach a 15x15 red squre
-#Reach diametrically opposite point and stay for 't' seconds
 #'t' to be specified before round
 def round1(t):
     #take the square/find the square
@@ -196,7 +221,7 @@ def round1(t):
         mask = cv2.addWeighted(mask1,1.0,mask2,1.0,0.0)
         #Apply morphological transformations
         #Find Contours
-        img,contours,hierarchy = cv2.findContours(mask,cv2.RETR_TREE,
+        img,contours,hierarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,
         cv2.CHAIN_APPROX_SIMPLE)
         #Find largest contour
         max_area = 50
@@ -209,7 +234,7 @@ def round1(t):
         req_contour = contours[max_i]
         #Draw contour
         new = frame.copy()
-        print('Contour Found')
+        #print('Contour Found')
         (cx,cy),rad = cv2.minEnclosingCircle(req_contour)
         cv2.circle(new,(int(cx),int(cy)), int(rad),(255,255,255),2)
         #Show results
@@ -218,6 +243,7 @@ def round1(t):
         #Find (r,theta) for (cx,cy)
         r = dist(arm_x,arm_y,cx,cy)
         theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
+        print('r : ' + str(r) + ' ; theta : ' + str(theta))
         #Move to (r,theta)
         #Wait for t seconds
         #Move to diametrically opposite point
@@ -230,10 +256,8 @@ def round1(t):
             break
     #cap.release()
     cv2.destroyAllWindows()
+
 #Round 2
-#Choose no of targets(2-12)
-#Choose accuracy i.e. no. of colors(RBGY)
-#Pop the balloons in the same sequence(RBGY)
 def round2():
     print('STARTING ROUND 2')
     for color in ['R','B','G','Y']:
@@ -245,8 +269,8 @@ def round2():
 #targets at close angle, close rad, limiting rad
 def round3_p1():
     print('STARTING ROUND 3 - PT. 1')
-    print('not done yet')
-
+    for color in ['R','B','G','Y']:
+        seq(color)
 
 #Round 3 -Part 2
 #Max 5 targets
@@ -268,16 +292,12 @@ def main():
     #ser = serial.Serial('/dev/ttyUSB0')
     #Check port used
     #print("Serial Used : " + ser.name)
-    #calibration
-    global frame
-    crop = border()
-    frame = frame[crop[0]:crop[1],crop[2]:crop[3]]
-    global mapper
-    mapper = 100/(crop[3]-crop[2])
     #Select round
     while True:
         round = input("Enter the round : ")
-        if round == '0':
+        if round == 'cal':
+            calib()
+        elif round == '0':
             print('Initializing')
             #Arm Initial Position
             arm_x = 400

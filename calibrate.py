@@ -85,7 +85,7 @@ def border():
     cv2.destroyAllWindows()
     frame = frame[min_y:max_y+h,min_x:max_x+w]
     crop = [min_y,max_y+h,min_x,max_x+w]
-    print(crop)
+    #print(crop)
     return crop
 
 def color_d(color):
