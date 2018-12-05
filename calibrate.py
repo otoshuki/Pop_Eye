@@ -22,7 +22,7 @@ def border(frame):
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #Create mask
         mask = cv2.inRange(hsv,lower1,upper1)
-        #1Apply morphological transformations
+        #Apply morphological transformations
 
         #Find Contours
         img,contours,hierarchy = cv2.findContours(mask.copy(),cv2.RETR_TREE,

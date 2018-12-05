@@ -13,7 +13,7 @@ import struct
 #Set up Serial Port
 #arduino = serial.Serial('/dev/ttyACM0', 9600)
 
-#frame = cv2.imread('Check1.jpg')
+frame = cv2.imread('Check.jpg')
 #new = frame.copy()
 #Global var
 centre_x = 0
@@ -267,57 +267,24 @@ def calib(img,flag):
         print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
     return img
 
-def calib1(flag):
-    #calibration
-    global centre_x
-    global centre_y
-    global arm_x
-    global arm_y
-    print('Starting Calibration')
-    cap = cv2.VideoCapture(1)
-    while True:
-        ret,img = cap.read()
-        #crop = border(img)
-        #img = frame[crop[0]:crop[1],crop[2]:crop[3]]
-        #Set mapping variable
-        #global mapper
-        #mapper = 100/(crop[3]-crop[2])
-        #Frame Centre
-        centre_y,centre_x,channels = img.shape
-        centre_x = int(centre_x/2)
-        centre_y = int(centre_y/2)
-        #Arm Head
-        arm_x = centre_x
-        arm_y = 0
-        print('Calibrated')
-        cv2.imshow('NEW', img)
-        k = cv2.waitKey(5) & 0xFF
-        if k == 27:
-            break
-    cap.release()
-    cv2.destroyAllWindows()
-    if flag == 1:
-        print('Mapper = ' + str(mapper))
-        print('cx = ' + str(centre_x) + ' cy = ' + str(centre_y))
-        print('arm_x = ' + str(arm_x) + ' arm_y = ' + str(arm_y))
-    return img
 #Round 1
 #'t' to be specified before round
 def round1(t):
     #take the square/find the square
     det = 0
+    global frame
     print('STARTING ROUND 1')
     #Take input from camera
     #Treshold
-    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture(1)
     lower1 = np.array([0,100,100])
     lower2 = np.array([160,100,100])
     upper1 = np.array([10,255,255])
     upper2 = np.array([179,255,255])
     while det  < 10:
         if det == 0:
-            for tf in range(10):
-                ret,frame = cap.read()
+        #    for tf in range(10):
+            #    ret,frame = cap.read()
             new = calib(frame,1)
         #Convert to HSV format
         hsv = cv2.cvtColor(new, cv2.COLOR_BGR2HSV)
@@ -342,7 +309,7 @@ def round1(t):
         new = frame.copy()
         #print('Contour Found')
         (cx,cy),rad = cv2.minEnclosingCircle(req_contour)
-        print('aewad')
+        #print('aewad')
         cv2.circle(new,(int(cx),int(cy)), int(rad),(255,255,255),2)
         cv2.circle(new,(centre_x,centre_y), 10,(255,255,255),2)
         cv2.circle(new,(arm_x,arm_y), 10,(255,255,255),2)
@@ -352,7 +319,7 @@ def round1(t):
         #r = dist(centre_x,centre_y,cx,cy)
         #theta = angle(centre_x,centre_y,cx,cy,arm_x,arm_y)
         #print('r : ' + str(r) + ' ; theta : ' + str(theta))
-        det += 1
+        #det += 1
         k = cv2.waitKey(5) & 0xFF
         if k == 27:
             break
@@ -363,7 +330,7 @@ def round1(t):
     cv2.destroyAllWindows()
     print('RED MARKER Detected')
     print('r : ' + str(r) + ' ; theta : ' + str(theta))
-    #move(frame,r,theta,color)
+    move(frame,r,theta,color)
     time.sleep(2)
     #Break
     print('Round over')
@@ -407,7 +374,7 @@ def main():
     while True:
         round = input("Enter the round : ")
         if round == 'cal':
-            calib1(1)
+            calib(frame,1)
         elif round == '0':
             print('Initializing')
             #Arm Initial Position
